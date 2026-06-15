@@ -5,6 +5,7 @@ import type { PurchaseOrder, OrderStatus } from '@/types/order';
 
 interface OrderListProps {
   orders: PurchaseOrder[];
+  loading?: boolean;
   onAdd?: () => void;
 }
 
@@ -18,7 +19,7 @@ const statusMap: Record<OrderStatus, { label: string; color: string }> = {
   cancelled: { label: '已取消', color: 'error' },
 };
 
-const OrderList: React.FC<OrderListProps> = ({ orders, onAdd }) => {
+const OrderList: React.FC<OrderListProps> = ({ orders, loading, onAdd }) => {
   const [filterStatus, setFilterStatus] = useState<OrderStatus | undefined>();
 
   const filtered = filterStatus ? orders.filter((o) => o.status === filterStatus) : orders;
@@ -43,7 +44,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onAdd }) => {
           {onAdd && <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>新建订单</Button>}
         </Space>
       </Card>
-      <Table rowKey="id" dataSource={filtered} columns={columns} size="small" pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }} scroll={{ x: 1200 }} />
+      <Table rowKey="id" dataSource={filtered} columns={columns} size="small" loading={loading} pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }} scroll={{ x: 1200 }} />
     </div>
   );
 };

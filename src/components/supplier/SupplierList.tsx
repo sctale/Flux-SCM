@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Table, Card, Row, Col, Tag, Select, Space, Button, Input, Statistic } from 'antd';
-import { ShopOutlined, CheckCircleOutlined, ExclamationCircleOutlined, CloseCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { Table, Card, Row, Col, Tag, Select, Space, Button, Input, Statistic, Popconfirm } from 'antd';
+import { ShopOutlined, CheckCircleOutlined, ExclamationCircleOutlined, CloseCircleOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { Supplier, SupplierStatus } from '@/types/supplier';
 import type { KraljicQuadrant, PerformanceGrade } from '@/types/common';
 import { quadrantLabels, quadrantColors } from '@/utils/kraljic';
@@ -8,8 +8,10 @@ import { gradeColors } from '@/utils/scoring';
 
 interface SupplierListProps {
   suppliers: Supplier[];
+  loading?: boolean;
   onAdd: () => void;
   onEdit: (supplier: Supplier) => void;
+  onDelete?: (id: string) => void;
 }
 
 const statusMap: Record<SupplierStatus, { label: string; color: string }> = {
@@ -20,7 +22,7 @@ const statusMap: Record<SupplierStatus, { label: string; color: string }> = {
   blacklisted: { label: '黑名单', color: 'error' },
 };
 
-const SupplierList: React.FC<SupplierListProps> = ({ suppliers, onAdd, onEdit }) => {
+const SupplierList: React.FC<SupplierListProps> = ({ suppliers, loading, onAdd, onEdit, onDelete }) => {
   const [filterQuadrant, setFilterQuadrant] = useState<KraljicQuadrant | undefined>();
   const [filterGrade, setFilterGrade] = useState<PerformanceGrade | undefined>();
   const [filterStatus, setFilterStatus] = useState<SupplierStatus | undefined>();
@@ -49,6 +51,13 @@ const SupplierList: React.FC<SupplierListProps> = ({ suppliers, onAdd, onEdit })
     { title: '交付', dataIndex: 'deliveryScore', key: 'deliveryScore' },
     { title: '服务', dataIndex: 'serviceScore', key: 'serviceScore' },
     { title: '状态', dataIndex: 'status', key: 'status', render: (s: SupplierStatus) => <Tag color={statusMap[s].color}>{statusMap[s].label}</Tag> },
+    ...(onDelete ? [{
+      title: '操作', key: 'action', render: (_: any, record: Supplier) => (
+        <Popconfirm title="确认删除该供应商？" onConfirm={() => onDelete(record.id)} okText="确认" cancelText="取消">
+          <Button type="link" danger icon={<DeleteOutlined />} size="small" />
+        </Popconfirm>
+      ),
+    }] : []),
   ];
 
   return (
@@ -78,7 +87,7 @@ const SupplierList: React.FC<SupplierListProps> = ({ suppliers, onAdd, onEdit })
         </Space>
       </Card>
 
-      <Table rowKey="id" dataSource={filtered} columns={columns} size="small" pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }} />
+      <Table rowKey="id" dataSource={filtered} columns={columns} size="small" loading={loading} pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }} />
     </div>
   );
 };

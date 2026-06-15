@@ -6,6 +6,7 @@ import type { ABCClass, XYZClass } from '@/types/common';
 
 interface MaterialListProps {
   materials: Material[];
+  loading?: boolean;
   onAdd: () => void;
 }
 
@@ -14,7 +15,7 @@ const xyzColorMap: Record<XYZClass, string> = { X: 'blue', Y: 'gold', Z: 'volcan
 const abcLabelMap: Record<ABCClass, string> = { A: 'A类', B: 'B类', C: 'C类' };
 const xyzLabelMap: Record<XYZClass, string> = { X: 'X类', Y: 'Y类', Z: 'Z类' };
 
-const MaterialList: React.FC<MaterialListProps> = ({ materials, onAdd }) => {
+const MaterialList: React.FC<MaterialListProps> = ({ materials, loading, onAdd }) => {
   const [searchText, setSearchText] = useState('');
 
   const filtered = materials.filter((m) => {
@@ -43,7 +44,7 @@ const MaterialList: React.FC<MaterialListProps> = ({ materials, onAdd }) => {
           <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>新增物料</Button>
         </Space>
       </Card>
-      <Table rowKey="id" dataSource={filtered} columns={columns} size="small" pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }} scroll={{ x: 1200 }} />
+      <Table rowKey="id" dataSource={filtered} columns={columns} size="small" loading={loading} pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }} scroll={{ x: 1200 }} />
     </div>
   );
 };
