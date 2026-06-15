@@ -1,0 +1,18 @@
+appId: com.flux-scm.app
+productName: Flux-SCM
+directories:
+  output: release
+  buildResources: public
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+files:
+  - dist/**/*
+  - node_modules/**/*
+  - package.json
