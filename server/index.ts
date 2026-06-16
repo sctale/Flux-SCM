@@ -6,6 +6,16 @@ import materialsRouter from './routes/materials';
 import ordersRouter from './routes/orders';
 import dashboardRouter from './routes/dashboard';
 import riskAlertsRouter from './routes/riskAlerts';
+import scorecardsRouter from './routes/scorecards';
+import tcoRouter from './routes/tco';
+import shouldCostRouter from './routes/shouldCost';
+import consolidationRouter from './routes/consolidation';
+import moqConflictsRouter from './routes/moqConflicts';
+import alternativesRouter from './routes/alternatives';
+import safetyStockRouter from './routes/safetyStock';
+import concentrationRouter from './routes/concentration';
+import procurementStrategyRouter from './routes/procurementStrategy';
+import supplierMaterialMatrixRouter from './routes/supplierMaterialMatrix';
 
 const app = express();
 const PORT = process.env.PORT || 3456;
@@ -31,9 +41,19 @@ app.use('/api/materials', materialsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/risk-alerts', riskAlertsRouter);
+app.use('/api/scorecards', scorecardsRouter);
+app.use('/api/tco', tcoRouter);
+app.use('/api/should-cost', shouldCostRouter);
+app.use('/api/consolidation', consolidationRouter);
+app.use('/api/moq-conflicts', moqConflictsRouter);
+app.use('/api/alternatives', alternativesRouter);
+app.use('/api/safety-stock', safetyStockRouter);
+app.use('/api/concentration', concentrationRouter);
+app.use('/api/procurement-strategy', procurementStrategyRouter);
+app.use('/api/supplier-material-matrix', supplierMaterialMatrixRouter);
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', version: '0.6.0', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: '0.7.1', timestamp: new Date().toISOString() });
 });
 
 async function start() {

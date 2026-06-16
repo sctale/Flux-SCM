@@ -135,6 +135,45 @@ function initializeTables(db: Database) {
       resolved_at TEXT, created_at TEXT NOT NULL
     );
   `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tco_analyses (
+      id TEXT PRIMARY KEY,
+      supplier_id TEXT NOT NULL, material_id TEXT NOT NULL,
+      purchase_price REAL DEFAULT 0,
+      freight_cost REAL DEFAULT 0, inspection_cost REAL DEFAULT 0,
+      storage_cost REAL DEFAULT 0, quality_loss_cost REAL DEFAULT 0,
+      delay_cost REAL DEFAULT 0, admin_cost REAL DEFAULT 0,
+      return_cost REAL DEFAULT 0, warranty_cost REAL DEFAULT 0,
+      opportunity_cost REAL DEFAULT 0, total_tco REAL DEFAULT 0,
+      remark TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS should_cost_analyses (
+      id TEXT PRIMARY KEY,
+      supplier_id TEXT NOT NULL, material_id TEXT NOT NULL,
+      material_cost REAL DEFAULT 0, labor_cost REAL DEFAULT 0,
+      overhead_cost REAL DEFAULT 0, equipment_cost REAL DEFAULT 0,
+      logistics_cost REAL DEFAULT 0, profit_margin REAL DEFAULT 0,
+      should_cost_total REAL DEFAULT 0,
+      quoted_price REAL DEFAULT 0, variance_pct REAL DEFAULT 0,
+      remark TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS supplier_scorecards (
+      id TEXT PRIMARY KEY,
+      supplier_id TEXT NOT NULL,
+      quality_score REAL DEFAULT 0, quality_weight REAL DEFAULT 0.30,
+      cost_score REAL DEFAULT 0, cost_weight REAL DEFAULT 0.25,
+      delivery_score REAL DEFAULT 0, delivery_weight REAL DEFAULT 0.25,
+      service_score REAL DEFAULT 0, service_weight REAL DEFAULT 0.10,
+      innovation_score REAL DEFAULT 0, innovation_weight REAL DEFAULT 0.10,
+      weighted_total REAL DEFAULT 0,
+      grade TEXT, period TEXT,
+      remark TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+  `);
 }
 
 function genId(): string { return crypto.randomUUID(); }
@@ -207,5 +246,47 @@ function seedIfNeeded(db: Database) {
 
   for (const a of alerts) {
     db.run(`INSERT INTO risk_alerts (id, supplier_id, alert_type, level, title, description, status, created_at) VALUES (?,?,?,?,?,?,?,?)`, a);
+  }
+
+  // TCO 种子数据
+  const materialResult = db.exec('SELECT id FROM materials');
+  const materialIds = materialResult[0]?.values.map(r => r[0] as string) || [];
+
+  const tcoData = [
+    [genId(), supplierIds[0] || '', materialIds[0] || '', 12.5, 0.8, 0.3, 0.15, 0.2, 0.1, 0.05, 0.02, 0.01, 0.05, 14.68, '不锈钢螺栓TCO分析', now(), now()],
+    [genId(), supplierIds[1] || '', materialIds[1] || '', 8.0, 0.5, 0.2, 0.1, 0.15, 0.08, 0.04, 0.01, 0.01, 0.03, 9.12, '铜制电阻TCO分析', now(), now()],
+    [genId(), supplierIds[4] || '', materialIds[3] || '', 25.0, 1.2, 0.5, 0.3, 0.4, 0.15, 0.08, 0.03, 0.02, 0.08, 27.76, '钕铁硼磁钢TCO分析', now(), now()],
+    [genId(), supplierIds[2] || '', materialIds[2] || '', 6.0, 0.6, 0.15, 0.08, 0.3, 0.2, 0.06, 0.02, 0.01, 0.04, 7.46, '压缩弹簧TCO分析-高延迟成本', now(), now()],
+    [genId(), supplierIds[5] || '', materialIds[4] || '', 1.2, 0.1, 0.05, 0.02, 0.03, 0.01, 0.01, 0.005, 0.002, 0.01, 1.437, 'O型密封圈TCO分析', now(), now()],
+  ];
+
+  for (const t of tcoData) {
+    db.run(`INSERT INTO tco_analyses (id, supplier_id, material_id, purchase_price, freight_cost, inspection_cost, storage_cost, quality_loss_cost, delay_cost, admin_cost, return_cost, warranty_cost, opportunity_cost, total_tco, remark, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, t);
+  }
+
+  // Should-Cost 种子数据
+  const shouldCostData = [
+    [genId(), supplierIds[0] || '', materialIds[0] || '', 8.0, 1.5, 0.8, 0.5, 0.3, 1.2, 12.3, 12.5, 1.6, '不锈钢螺栓应该成本分析', now(), now()],
+    [genId(), supplierIds[1] || '', materialIds[1] || '', 5.5, 0.8, 0.5, 0.3, 0.2, 0.7, 8.0, 8.0, 0.0, '铜制电阻应该成本-合理', now(), now()],
+    [genId(), supplierIds[4] || '', materialIds[3] || '', 18.0, 2.5, 1.5, 1.0, 0.8, 2.0, 25.8, 25.0, -3.2, '钕铁硼磁钢应该成本分析', now(), now()],
+    [genId(), supplierIds[2] || '', materialIds[2] || '', 4.0, 0.5, 0.3, 0.2, 0.15, 0.5, 5.65, 6.0, 6.2, '压缩弹簧应该成本-偏高', now(), now()],
+  ];
+
+  for (const s of shouldCostData) {
+    db.run(`INSERT INTO should_cost_analyses (id, supplier_id, material_id, material_cost, labor_cost, overhead_cost, equipment_cost, logistics_cost, profit_margin, should_cost_total, quoted_price, variance_pct, remark, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, s);
+  }
+
+  // 供应商积分卡种子数据
+  const scorecardData = [
+    [genId(), supplierIds[0] || '', 90, 0.30, 85, 0.25, 92, 0.25, 85, 0.10, 88, 0.10, 88.55, 'A', '2026-Q2', '精密机械-Q2评分', now(), now()],
+    [genId(), supplierIds[1] || '', 85, 0.30, 80, 0.25, 82, 0.25, 78, 0.10, 75, 0.10, 81.5, 'B', '2026-Q2', '华通电子-Q2评分', now(), now()],
+    [genId(), supplierIds[2] || '', 75, 0.30, 70, 0.25, 72, 0.25, 68, 0.10, 60, 0.10, 71.5, 'C', '2026-Q2', '恒力弹簧-Q2评分', now(), now()],
+    [genId(), supplierIds[4] || '', 95, 0.30, 88, 0.25, 90, 0.25, 90, 0.10, 92, 0.10, 91.2, 'A', '2026-Q2', '东方磁材-Q2评分', now(), now()],
+    [genId(), supplierIds[5] || '', 82, 0.30, 76, 0.25, 80, 0.25, 77, 0.10, 70, 0.10, 78.1, 'B', '2026-Q2', '永泰橡胶-Q2评分', now(), now()],
+    [genId(), supplierIds[6] || '', 70, 0.30, 65, 0.25, 68, 0.25, 62, 0.10, 55, 0.10, 65.5, 'C', '2026-Q2', '宏达电机-Q2评分', now(), now()],
+  ];
+
+  for (const sc of scorecardData) {
+    db.run(`INSERT INTO supplier_scorecards (id, supplier_id, quality_score, quality_weight, cost_score, cost_weight, delivery_score, delivery_weight, service_score, service_weight, innovation_score, innovation_weight, weighted_total, grade, period, remark, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, sc);
   }
 }

@@ -1,6 +1,8 @@
-import React from 'react';
-import { Card } from 'antd';
+import React, { useState } from 'react';
+import { Card, Button } from 'antd';
+import { QuestionCircleOutlined } from '@ant-design/icons';
 import OrderList from '@/components/order/OrderList';
+import HelpPanel from '@/components/common/HelpPanel';
 import type { PurchaseOrder } from '@/types/order';
 
 const mockOrders: PurchaseOrder[] = [
@@ -41,10 +43,26 @@ const mockOrders: PurchaseOrder[] = [
   },
 ];
 
-const Orders: React.FC = () => (
-  <Card>
-    <OrderList orders={mockOrders} />
-  </Card>
-);
+const Orders: React.FC = () => {
+  const [helpVisible, setHelpVisible] = useState(true);
+
+  return (
+    <>
+      <Card title="订单管理" extra={<Button icon={<QuestionCircleOutlined />} onClick={() => setHelpVisible(true)}>帮助</Button>}>
+        <OrderList orders={mockOrders} />
+      </Card>
+      <HelpPanel
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title="订单管理帮助"
+        sections={[
+          { title: '订单流程', content: '订单管理支持完整的采购订单生命周期：\n\n1. 草稿 → 新建订单，填写基本信息\n2. 已提交 → 提交给供应商确认\n3. 已确认 → 供应商确认接单\n4. 部分交付 → 逐步收货\n5. 已交付 → 全部收货完成\n6. 已关闭 → 订单完结\n\n任何阶段均可取消订单' },
+          { title: '订单创建', content: '点击"新建订单"按钮，选择供应商后添加物料明细。\n\n系统自动计算订单金额，支持设置付款条件和期望交付日期。' },
+          { title: '交付跟踪', content: '在订单详情中可录入交付记录，包括交付数量、合格数量和检验结果。\n\n系统自动更新已交付数量，便于跟踪交付进度。' },
+        ]}
+      />
+    </>
+  );
+};
 
 export default Orders;

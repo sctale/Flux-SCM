@@ -1,5 +1,6 @@
 import React from 'react';
-import { Card, Tabs, Form, Input, Select, InputNumber, Button, Slider, Space, message, Row, Col } from 'antd';
+import { Card, Tabs, Form, Input, Select, InputNumber, Button, Slider, Space, Switch, message, Row, Col } from 'antd';
+import useModuleStore from '../stores/moduleStore';
 
 const Settings: React.FC = () => (
   <Card>
@@ -10,6 +11,11 @@ const Settings: React.FC = () => (
           key: 'basic',
           label: '基本设置',
           children: <BasicSettings />,
+        },
+        {
+          key: 'modules',
+          label: '模块管理',
+          children: <ModuleSettings />,
         },
         {
           key: 'scoring',
@@ -25,6 +31,37 @@ const Settings: React.FC = () => (
     />
   </Card>
 );
+
+const ModuleSettings: React.FC = () => {
+  const { orderManagement, procurementOptimization, toggleModule } = useModuleStore();
+
+  return (
+    <div style={{ maxWidth: 600 }}>
+      <Row gutter={[16, 16]}>
+        <Col span={24}>
+          <Card size="small" title="功能模块开关" styles={{ body: { padding: 16 } }}>
+            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 500 }}>订单管理</div>
+                  <div style={{ fontSize: 12, color: '#888' }}>管理采购订单、交付跟踪等（选装模块，默认关闭）</div>
+                </div>
+                <Switch checked={orderManagement} onChange={() => toggleModule('orderManagement')} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 500 }}>采购优化</div>
+                  <div style={{ fontSize: 12, color: '#888' }}>合并建议、MOQ冲突、替代物料、安全库存、集中度分析</div>
+                </div>
+                <Switch checked={procurementOptimization} onChange={() => toggleModule('procurementOptimization')} />
+              </div>
+            </Space>
+          </Card>
+        </Col>
+      </Row>
+    </div>
+  );
+};
 
 const BasicSettings: React.FC = () => {
   const [form] = Form.useForm();
