@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { initDb, getDb, saveDb } from './database';
 import suppliersRouter from './routes/suppliers';
 import materialsRouter from './routes/materials';
@@ -53,7 +55,15 @@ app.use('/api/procurement-strategy', procurementStrategyRouter);
 app.use('/api/supplier-material-matrix', supplierMaterialMatrixRouter);
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', version: '0.7.3', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: '0.7.4', timestamp: new Date().toISOString() });
+});
+
+// 生产环境：服务前端静态文件
+const distPath = path.join(process.cwd(), 'dist');
+app.use(express.static(distPath));
+// SPA fallback：Express 5 不支持 '*' 通配符，改用正则匹配
+app.get(/^\/(?!api).*/, (_req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 async function start() {

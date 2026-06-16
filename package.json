@@ -1,16 +1,87 @@
 {
   "name": "flux-scm",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Flux-SCM - 供应商分析平台 | 面向小批量多品种采购场景",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:vite\"",
     "dev:vite": "vite",
     "dev:server": "tsx server/index.ts",
+    "dev:electron": "concurrently \"npm run dev:server\" \"wait-on http://localhost:3456 && electron .\"",
     "build": "vite build",
+    "build:server": "tsc -p server/tsconfig.json",
+    "build:electron": "npm run build && npm run build:server && electron-builder",
     "preview": "vite preview",
     "server": "tsx server/index.ts",
     "test": "vitest",
     "test:run": "vitest run"
+  },
+  "build": {
+    "appId": "com.flux-scm.app",
+    "productName": "Flux-SCM",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "dist/**/*",
+      "public/**/*",
+      "server/**/*.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules",
+        "to": "node_modules",
+        "filter": [
+          "**/*",
+          "!**/electron/**",
+          "!**/electron-builder/**",
+          "!**/vite/**",
+          "!**/typescript/**",
+          "!**/@testing-library/**",
+          "!**/vitest/**",
+          "!**/jsdom/**",
+          "!**/@vitejs/**",
+          "!**/concurrently/**",
+          "!**/wait-on/**",
+          "!**/tsx/**"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "public/icon.png"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "public/icon.png"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "public/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Flux-SCM"
+    }
   },
   "dependencies": {
     "@ant-design/icons": "^5.5.0",
@@ -37,10 +108,13 @@
     "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
     "jsdom": "^29.1.1",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
-    "vitest": "^2.1.5"
+    "vitest": "^2.1.5",
+    "wait-on": "^8.0.1"
   }
 }

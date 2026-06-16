@@ -1,7 +1,11 @@
 node_modules/
 dist/
 release/
+data/
 *.db
 *.db-journal
 .env
 .DS_Store
+# 后端编译产物（GitHub Actions 自动编译）
+server/**/*.js
+!server/tsconfig.json
