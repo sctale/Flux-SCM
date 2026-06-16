@@ -8,6 +8,9 @@ on:
 
 jobs:
   build:
+    permissions:
+      contents: write
+
     strategy:
       matrix:
         include:
@@ -89,6 +92,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
 
     steps:
       - name: Download all artifacts
