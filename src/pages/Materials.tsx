@@ -58,7 +58,7 @@ const mockMaterials: Material[] = [
 const Materials: React.FC = () => {
   const [materials, setMaterials] = useState<Material[]>(mockMaterials);
   const [formOpen, setFormOpen] = useState(false);
-  const [helpVisible, setHelpVisible] = useState(true);
+  const [helpVisible, setHelpVisible] = useState(false);
 
   const handleSubmit = (data: MaterialFormData) => {
     const newMaterial: Material = {
@@ -82,28 +82,31 @@ const Materials: React.FC = () => {
   };
 
   return (
-    <>
-      <Card extra={<Button icon={<QuestionCircleOutlined />} onClick={() => setHelpVisible(true)}>帮助</Button>}>
-        <Tabs
-          defaultActiveKey="list"
-          items={[
-            {
-              key: 'list',
-              label: '物料列表',
-              children: <MaterialList materials={materials} onAdd={() => setFormOpen(true)} />,
-            },
-            {
-              key: 'matrix',
-              label: 'ABC-XYZ矩阵',
-              children: <ABCXYZView materials={materials} />,
-            },
-          ]}
-        />
-        <MaterialForm open={formOpen} onClose={() => setFormOpen(false)} onSubmit={handleSubmit} />
-      </Card>
+    <div style={{ display: 'flex', height: '100%' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Card extra={<Button icon={<QuestionCircleOutlined />} onClick={() => setHelpVisible(!helpVisible)} type={helpVisible ? 'primary' : 'default'}>帮助</Button>}>
+          <Tabs
+            defaultActiveKey="list"
+            items={[
+              {
+                key: 'list',
+                label: '物料列表',
+                children: <MaterialList materials={materials} onAdd={() => setFormOpen(true)} />,
+              },
+              {
+                key: 'matrix',
+                label: 'ABC-XYZ矩阵',
+                children: <ABCXYZView materials={materials} />,
+              },
+            ]}
+          />
+          <MaterialForm open={formOpen} onClose={() => setFormOpen(false)} onSubmit={handleSubmit} />
+        </Card>
+      </div>
       <HelpPanel
         visible={helpVisible}
         onClose={() => setHelpVisible(false)}
+        onOpen={() => setHelpVisible(true)}
         title="物料管理帮助"
         sections={[
           { title: '物料列表', content: '物料列表展示所有已录入的物料信息，支持按类别、ABC分类、XYZ分类筛选。\n\n点击"添加物料"按钮可新增物料，填写物料编码、名称、规格、单位等基本信息。\n\n物料编码建议遵循统一规则：类别-材质-序号，如 JJ-SS-M8-JM-001' },
@@ -111,7 +114,7 @@ const Materials: React.FC = () => {
           { title: '物料编码规则', content: '推荐编码格式：类别缩写-材质缩写-规格-序号\n\n示例：\n• JJ-SS-M8-JM-001（机加-不锈钢-M8-精密-001）\n• YJ-CU-R10-HT-001（元件-铜-R10-华通-001）\n• TH-SS-C20-HL-001（弹簧-不锈钢-C20-恒力-001）' },
         ]}
       />
-    </>
+    </div>
   );
 };
 

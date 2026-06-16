@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Modal, Slider, Row, Col, Statistic, Tag, Space, message } from 'antd';
-import { TrophyOutlined, SettingOutlined, PlusOutlined } from '@ant-design/icons';
+import { TrophyOutlined, SettingOutlined, PlusOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
+import HelpPanel from '@/components/common/HelpPanel';
 
 const API = '/api/scorecards';
 
@@ -18,6 +19,7 @@ interface Scorecard {
 const Scorecards: React.FC = () => {
   const [data, setData] = useState<Scorecard[]>([]);
   const [weightModalVisible, setWeightModalVisible] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Scorecard | null>(null);
   const [weights, setWeights] = useState({ quality: 30, cost: 25, delivery: 25, service: 10, innovation: 10 });
 
@@ -126,7 +128,9 @@ const Scorecards: React.FC = () => {
   };
 
   return (
-    <div>
+    <>
+    <div style={{ display: 'flex', height: '100%' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}><Card><Statistic title="评分供应商数" value={data.length} prefix={<TrophyOutlined />} /></Card></Col>
         <Col span={6}><Card><Statistic title="A级供应商" value={data.filter(d => d.grade === 'A').length} valueStyle={{ color: '#52c41a' }} /></Card></Col>
@@ -140,32 +144,45 @@ const Scorecards: React.FC = () => {
         <Col span={8}><Card size="small"><ReactECharts option={stackBarOption} style={{ height: 250 }} /></Card></Col>
       </Row>
 
-      <Card title="供应商积分卡明细" size="small">
+      <Card title="供应商积分卡明细" size="small" extra={<Button icon={<QuestionCircleOutlined />} onClick={() => setHelpVisible(!helpVisible)} type={helpVisible ? 'primary' : 'default'}>帮助</Button>}>
         <Table dataSource={data} columns={columns} rowKey="id" size="small" pagination={false} />
       </Card>
-
-      <Modal title="设置评分权重" open={weightModalVisible} onOk={handleWeightSave} onCancel={() => setWeightModalVisible(false)} width={500}>
-        <p style={{ marginBottom: 16, color: '#888' }}>调整各维度权重，总和必须为100%</p>
-        {[
-          { key: 'quality' as const, label: '质量' },
-          { key: 'cost' as const, label: '成本' },
-          { key: 'delivery' as const, label: '交付' },
-          { key: 'service' as const, label: '服务' },
-          { key: 'innovation' as const, label: '创新' },
-        ].map(item => (
-          <Row key={item.key} align="middle" style={{ marginBottom: 8 }}>
-            <Col span={4}><strong>{item.label}</strong></Col>
-            <Col span={16}><Slider min={0} max={100} value={weights[item.key]} onChange={v => setWeights({ ...weights, [item.key]: v })} /></Col>
-            <Col span={4} style={{ textAlign: 'right' }}>{weights[item.key]}%</Col>
-          </Row>
-        ))}
-        <div style={{ textAlign: 'center', marginTop: 8, fontSize: 16 }}>
-          总计：<span style={{ color: weights.quality + weights.cost + weights.delivery + weights.service + weights.innovation === 100 ? '#52c41a' : '#ff4d4f', fontWeight: 'bold' }}>
-            {weights.quality + weights.cost + weights.delivery + weights.service + weights.innovation}%
-          </span>
-        </div>
-      </Modal>
+      </div>
+      <HelpPanel
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        onOpen={() => setHelpVisible(true)}
+        title="供应商积分卡帮助"
+        sections={[
+          { title: 'QCDS评分模型', content: 'QCDS是供应商绩效评估的经典模型：\n\n• Q（Quality质量）：来料合格率、质量体系认证\n• C（Cost成本）：价格竞争力、降本配合度\n• D（Delivery交付）：准时交付率、响应速度\n• S（Service服务）：技术支持、售后响应\n\n本系统额外增加了"创新"维度，鼓励供应商协同创新。' },
+          { title: '权重设置', content: '点击每行的"设置权重"按钮，可调整5个维度的权重比例。\n\n权重总和必须为100%。默认权重：质量30%、成本25%、交付25%、服务10%、创新10%。\n\n建议：战略供应商可提高"创新"权重，杠杆供应商可提高"成本"权重。' },
+          { title: '等级标准', content: '加权总分 → 等级映射：\n• A级：≥90分（优秀供应商）\n• B级：80-89分（良好供应商）\n• C级：70-79分（合格供应商）\n• D级：60-69分（待改进）\n• F级：<60分（不合格）' },
+        ]}
+      />
     </div>
+
+    <Modal title="设置评分权重" open={weightModalVisible} onOk={handleWeightSave} onCancel={() => setWeightModalVisible(false)} width={500}>
+      <p style={{ marginBottom: 16, color: '#888' }}>调整各维度权重，总和必须为100%</p>
+      {[
+        { key: 'quality' as const, label: '质量' },
+        { key: 'cost' as const, label: '成本' },
+        { key: 'delivery' as const, label: '交付' },
+        { key: 'service' as const, label: '服务' },
+        { key: 'innovation' as const, label: '创新' },
+      ].map(item => (
+        <Row key={item.key} align="middle" style={{ marginBottom: 8 }}>
+          <Col span={4}><strong>{item.label}</strong></Col>
+          <Col span={16}><Slider min={0} max={100} value={weights[item.key]} onChange={v => setWeights({ ...weights, [item.key]: v })} /></Col>
+          <Col span={4} style={{ textAlign: 'right' }}>{weights[item.key]}%</Col>
+        </Row>
+      ))}
+      <div style={{ textAlign: 'center', marginTop: 8, fontSize: 16 }}>
+        总计：<span style={{ color: weights.quality + weights.cost + weights.delivery + weights.service + weights.innovation === 100 ? '#52c41a' : '#ff4d4f', fontWeight: 'bold' }}>
+          {weights.quality + weights.cost + weights.delivery + weights.service + weights.innovation}%
+        </span>
+      </div>
+    </Modal>
+    </>
   );
 };
 
