@@ -1,6 +1,6 @@
 {
   "name": "flux-scm",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Flux-SCM - 供应商分析平台 | 面向小批量多品种采购场景",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:vite\"",
