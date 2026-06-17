@@ -26,7 +26,7 @@ Flux-SCM 是一款基于 Electron + React 的桌面端供应链管理平台，�
 | 构建 | Vite 5 |
 | 桌面端 | Electron 33 |
 | 打包 | electron-builder |
-| 数据库 | Better-SQLite3 + Drizzle ORM |
+| 数据库 | sql.js (SQLite WASM) + Express 5 |
 | 测试 | Vitest + Testing Library |
 
 ## 开发指南
@@ -83,6 +83,25 @@ flux-scm/
 │   ├── main.ts               # 主进程入口，窗口创建与 IPC
 │   ├── preload.ts            # 预加载脚本，安全暴露 API
 │   └── tsconfig.json         # Electron TypeScript 配置
+├── server/                    # 后端服务 (Express 5 + sql.js)
+│   ├── index.ts              # 服务入口，路由注册与 SPA fallback
+│   ├── database.ts           # 数据库初始化、建表与种子数据
+│   ├── dbHelper.ts           # SQL 查询封装 (queryAll/queryOne/run)
+│   └── routes/               # API 路由模块
+│       ├── suppliers.ts      # 供应商 CRUD + 级联删除
+│       ├── materials.ts      # 物料 CRUD + 级联删除
+│       ├── orders.ts         # 采购订单 CRUD
+│       ├── dashboard.ts      # 仪表盘统计
+│       ├── tco.ts            # TCO 总拥有成本分析
+│       ├── shouldCost.ts     # Should-Cost 应该成本分析
+│       ├── scorecards.ts     # QCDS 供应商积分卡
+│       ├── riskAlerts.ts     # 风险预警
+│       ├── safetyStock.ts    # 安全库存建议 (ABC-XYZ + 提前期)
+│       ├── consolidation.ts  # 采购合并建议
+│       ├── moqConflicts.ts   # MOQ 冲突检测
+│       ├── alternatives.ts   # 替代物料建议
+│       ├── concentration.ts  # 供应商集中度 (HHI/CR3/CR5)
+│       └── supplierMaterialMatrix.ts  # 供应商-物料矩阵
 ├── src/
 │   ├── components/           # React 组件
 │   │   ├── dashboard/        # 仪表盘组件 (KPI卡片、趋势图、预警)

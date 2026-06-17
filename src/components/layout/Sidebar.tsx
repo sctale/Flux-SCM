@@ -10,6 +10,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import useModuleStore from '../../stores/moduleStore';
 
 const { Sider } = Layout;
+const { SubMenu } = Menu;
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();

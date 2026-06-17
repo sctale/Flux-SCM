@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Modal, Form, Select, InputNumber, Input, Row, Col, Statistic, Tag, Space, message } from 'antd';
-import { DollarOutlined, PlusOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, Table, Button, Modal, Form, Select, InputNumber, Input, Row, Col, Statistic, Tag, message } from 'antd';
+import { DollarOutlined, PlusOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
-import HelpPanel from '@/components/common/HelpPanel';
 
 const API = '/api/tco';
 
@@ -20,7 +19,7 @@ const TCO: React.FC = () => {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [helpVisible, setHelpVisible] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
 
   const fetchData = () => { fetch(API).then(r => r.json()).then(setData).catch(() => message.error('加载失败')); };
@@ -30,11 +29,16 @@ const TCO: React.FC = () => {
   };
   useEffect(() => { fetchData(); fetchOptions(); }, []);
 
-  // 汇总统计
-  const avgTcoPremium = data.length ? ((data.reduce((s, d) => s + (d.total_tco - d.purchase_price), 0) / data.reduce((s, d) => s + d.purchase_price, 0)) * 100).toFixed(1) : '0';
+  // 汇总统计（useMemo缓存避免重复计算）
+  const stats = useMemo(() => {
+    const totalTco = data.reduce((s, d) => s + d.total_tco, 0);
+    const totalPurchase = data.reduce((s, d) => s + d.purchase_price, 0);
+    const avgPremium = data.length && totalPurchase ? ((totalTco - totalPurchase) / totalPurchase * 100).toFixed(1) : '0';
+    return { totalTco, totalPurchase, avgPremium };
+  }, [data]);
 
   // 采购价 vs TCO 对比柱状图
-  const compareBarOption = {
+  const compareBarOption = useMemo(() => ({
     title: { text: '采购价 vs TCO 对比', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
     legend: { bottom: 0, data: ['采购价', 'TCO'] },
@@ -44,46 +48,79 @@ const TCO: React.FC = () => {
       { name: '采购价', type: 'bar', data: data.map(d => d.purchase_price), itemStyle: { color: '#1890ff' } },
       { name: 'TCO', type: 'bar', data: data.map(d => d.total_tco), itemStyle: { color: '#ff4d4f' } },
     ]
-  };
+  }), [data]);
 
   // 隐性成本占比饼图
-  const hiddenCostOption = {
-    title: { text: '隐性成本构成', left: 'center', textStyle: { fontSize: 14 } },
-    tooltip: { trigger: 'item' },
-    series: [{
-      type: 'pie', radius: ['40%', '70%'],
-      data: [
-        { name: '运费', value: data.reduce((s, d) => s + d.freight_cost, 0) },
-        { name: '检验', value: data.reduce((s, d) => s + d.inspection_cost, 0) },
-        { name: '仓储', value: data.reduce((s, d) => s + d.storage_cost, 0) },
-        { name: '质量损失', value: data.reduce((s, d) => s + d.quality_loss_cost, 0) },
-        { name: '延迟', value: data.reduce((s, d) => s + d.delay_cost, 0) },
-        { name: '管理', value: data.reduce((s, d) => s + d.admin_cost, 0) },
-        { name: '退货', value: data.reduce((s, d) => s + d.return_cost, 0) },
-        { name: '质保', value: data.reduce((s, d) => s + d.warranty_cost, 0) },
-        { name: '机会成本', value: data.reduce((s, d) => s + d.opportunity_cost, 0) },
-      ].filter(d => d.value > 0),
-      label: { formatter: '{b}: {c}' }
-    }]
-  };
+  const hiddenCostOption = useMemo(() => {
+    const costs = data.reduce((acc, d) => {
+      acc.freight += d.freight_cost; acc.inspection += d.inspection_cost;
+      acc.storage += d.storage_cost; acc.quality += d.quality_loss_cost;
+      acc.delay += d.delay_cost; acc.admin += d.admin_cost;
+      acc.ret += d.return_cost; acc.warranty += d.warranty_cost;
+      acc.opportunity += d.opportunity_cost;
+      return acc;
+    }, { freight: 0, inspection: 0, storage: 0, quality: 0, delay: 0, admin: 0, ret: 0, warranty: 0, opportunity: 0 });
+    return {
+      title: { text: '隐性成本构成', left: 'center', textStyle: { fontSize: 14 } },
+      tooltip: { trigger: 'item' },
+      series: [{
+        type: 'pie', radius: ['40%', '70%'],
+        data: [
+          { name: '运费', value: costs.freight },
+          { name: '检验', value: costs.inspection },
+          { name: '仓储', value: costs.storage },
+          { name: '质量损失', value: costs.quality },
+          { name: '延迟', value: costs.delay },
+          { name: '管理', value: costs.admin },
+          { name: '退货', value: costs.ret },
+          { name: '质保', value: costs.warranty },
+          { name: '机会成本', value: costs.opportunity },
+        ].filter(d => d.value > 0),
+        label: { formatter: '{b}: {c}' }
+      }]
+    };
+  }, [data]);
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    await fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(values),
-    });
-    message.success('TCO分析已创建');
-    setModalVisible(false);
-    form.resetFields();
-    fetchData();
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+      if (!res.ok) throw new Error('创建失败');
+      message.success('TCO分析已创建');
+      setModalVisible(false);
+      form.resetFields();
+      fetchData();
+    } catch (e: any) {
+      if (e.errorFields) return; // 表单校验错误，不提示
+      message.error(e.message || '创建失败');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    await fetch(`${API}/${id}`, { method: 'DELETE' });
-    message.success('已删除');
-    fetchData();
+  const handleDelete = (id: string) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除这条TCO分析记录吗？此操作不可恢复。',
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('删除失败');
+          message.success('已删除');
+          fetchData();
+        } catch (e: any) {
+          message.error(e.message || '删除失败');
+        }
+      },
+    });
   };
 
   const columns = [
@@ -100,14 +137,12 @@ const TCO: React.FC = () => {
   ];
 
   return (
-    <>
-    <div style={{ display: 'flex', height: '100%' }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
+    <div>
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}><Card><Statistic title="TCO分析数" value={data.length} prefix={<DollarOutlined />} /></Card></Col>
-        <Col span={6}><Card><Statistic title="平均TCO溢价" value={avgTcoPremium} suffix="%" valueStyle={{ color: parseFloat(avgTcoPremium) > 15 ? '#ff4d4f' : '#52c41a' }} /></Card></Col>
-        <Col span={6}><Card><Statistic title="总TCO" value={data.reduce((s, d) => s + d.total_tco, 0).toFixed(0)} prefix="¥" /></Card></Col>
-        <Col span={6}><Card><Statistic title="总采购价" value={data.reduce((s, d) => s + d.purchase_price, 0).toFixed(0)} prefix="¥" valueStyle={{ color: '#1890ff' }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="平均TCO溢价" value={stats.avgPremium} suffix="%" valueStyle={{ color: parseFloat(stats.avgPremium) > 15 ? '#ff4d4f' : '#52c41a' }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="总TCO" value={stats.totalTco.toFixed(0)} prefix="¥" /></Card></Col>
+        <Col span={6}><Card><Statistic title="总采购价" value={stats.totalPurchase.toFixed(0)} prefix="¥" valueStyle={{ color: '#1890ff' }} /></Card></Col>
       </Row>
 
       <Row gutter={16} style={{ marginBottom: 16 }}>
@@ -115,8 +150,8 @@ const TCO: React.FC = () => {
         <Col span={12}><Card size="small"><ReactECharts option={hiddenCostOption} style={{ height: 280 }} /></Card></Col>
       </Row>
 
-      <Card title="TCO分析明细" size="small" extra={<Space><Button icon={<QuestionCircleOutlined />} onClick={() => setHelpVisible(!helpVisible)} type={helpVisible ? 'primary' : 'default'}>帮助</Button><Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建分析</Button></Space>}>
-        <Table dataSource={data} columns={columns} rowKey="id" size="small" pagination={false}
+      <Card title="TCO分析明细" size="small" extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建分析</Button>}>
+        <Table dataSource={data} columns={columns} rowKey="id" size="small" pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
           expandable={{
             expandedRowRender: (record: TCORecord) => {
               const costs = [
@@ -145,48 +180,35 @@ const TCO: React.FC = () => {
           }}
         />
       </Card>
-      </div>
-      <HelpPanel
-        visible={helpVisible}
-        onClose={() => setHelpVisible(false)}
-        onOpen={() => setHelpVisible(true)}
-        title="TCO分析帮助"
-        sections={[
-          { title: '什么是TCO', content: 'TCO（Total Cost of Ownership）总拥有成本，不仅包含采购单价，还包含运费、检验、仓储、质量损失、延迟、管理、退货、质保、机会成本等隐性成本。\n\nTCO分析帮助您发现"便宜买贵用"的问题，做出更明智的采购决策。' },
-          { title: '如何创建分析', content: '1. 点击"新建分析"按钮\n2. 选择供应商和物料\n3. 填写采购单价和各项隐性成本\n4. 系统自动计算TCO和溢价率\n\n建议：先从A类物料开始分析，优先关注溢价率超过15%的供应商。' },
-          { title: '图表解读', content: '• 采购价vs TCO对比图：柱状图越高的物料，隐性成本越大\n• 隐性成本构成饼图：显示各项隐性成本的占比，帮助定位最大成本来源\n• 展开行可查看单条记录的详细成本分解' },
-        ]}
-      />
-    </div>
 
-    <Modal title="新建TCO分析" open={modalVisible} onOk={handleSubmit} onCancel={() => { setModalVisible(false); form.resetFields(); }} width={600}>
-      <Form form={form} layout="vertical">
-        <Row gutter={16}>
-          <Col span={12}><Form.Item name="supplier_id" label="供应商" rules={[{ required: true }]}><Select options={suppliers.map((s: any) => ({ value: s.id, label: s.name }))} placeholder="选择供应商" /></Form.Item></Col>
-          <Col span={12}><Form.Item name="material_id" label="物料" rules={[{ required: true }]}><Select options={materials.map((m: any) => ({ value: m.id, label: `${m.code} - ${m.name}` }))} placeholder="选择物料" /></Form.Item></Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}><Form.Item name="purchase_price" label="采购单价" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} addonAfter="元" /></Form.Item></Col>
-          <Col span={12}><Form.Item name="freight_cost" label="运费" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} addonAfter="元" /></Form.Item></Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={8}><Form.Item name="inspection_cost" label="检验费" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
-          <Col span={8}><Form.Item name="storage_cost" label="仓储费" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
-          <Col span={8}><Form.Item name="quality_loss_cost" label="质量损失" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={8}><Form.Item name="delay_cost" label="延迟成本" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
-          <Col span={8}><Form.Item name="admin_cost" label="管理成本" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
-          <Col span={8}><Form.Item name="return_cost" label="退货成本" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={8}><Form.Item name="warranty_cost" label="质保成本" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
-          <Col span={8}><Form.Item name="opportunity_cost" label="机会成本" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
-          <Col span={8}><Form.Item name="remark" label="备注"><Input placeholder="可选" /></Form.Item></Col>
-        </Row>
-      </Form>
-    </Modal>
-    </>
+      <Modal title="新建TCO分析" open={modalVisible} onOk={handleSubmit} confirmLoading={submitting} onCancel={() => { setModalVisible(false); form.resetFields(); }} width={600}>
+        <Form form={form} layout="vertical">
+          <Row gutter={16}>
+            <Col span={12}><Form.Item name="supplier_id" label="供应商" rules={[{ required: true }]}><Select options={suppliers.map((s: any) => ({ value: s.id, label: s.name }))} placeholder="选择供应商" /></Form.Item></Col>
+            <Col span={12}><Form.Item name="material_id" label="物料" rules={[{ required: true }]}><Select options={materials.map((m: any) => ({ value: m.id, label: `${m.code} - ${m.name}` }))} placeholder="选择物料" /></Form.Item></Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}><Form.Item name="purchase_price" label="采购单价" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} addonAfter="元" /></Form.Item></Col>
+            <Col span={12}><Form.Item name="freight_cost" label="运费" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} addonAfter="元" /></Form.Item></Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={8}><Form.Item name="inspection_cost" label="检验费" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="storage_cost" label="仓储费" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="quality_loss_cost" label="质量损失" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={8}><Form.Item name="delay_cost" label="延迟成本" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="admin_cost" label="管理成本" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="return_cost" label="退货成本" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={8}><Form.Item name="warranty_cost" label="质保成本" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="opportunity_cost" label="机会成本" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
+          </Row>
+          <Form.Item name="remark" label="备注"><Input.TextArea rows={2} placeholder="可选" /></Form.Item>
+        </Form>
+      </Modal>
+    </div>
   );
 };
 
