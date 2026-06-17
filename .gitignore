@@ -5,3 +5,7 @@ release/
 *.db-journal
 .env
 .DS_Store
+
+# 后端 TypeScript 编译产物
+server/**/*.js
+server/*.js

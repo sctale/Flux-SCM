@@ -291,18 +291,19 @@ function seedIfNeeded(db: Database) {
   }
 
   // 供应商-物料关系种子数据（支持合并建议、MOQ冲突、供应商-物料矩阵等功能）
-  const materialSupplierData = [
-    [genId(), supplierIds[0] || '', materialIds[0] || '', 12.5, 500, 7, true, now(), now()],
-    [genId(), supplierIds[1] || '', materialIds[0] || '', 13.0, 300, 10, false, now(), now()],
-    [genId(), supplierIds[1] || '', materialIds[1] || '', 8.0, 200, 14, true, now(), now()],
-    [genId(), supplierIds[0] || '', materialIds[1] || '', 8.5, 100, 14, false, now(), now()],
-    [genId(), supplierIds[2] || '', materialIds[2] || '', 6.0, 50, 21, true, now(), now()],
-    [genId(), supplierIds[4] || '', materialIds[3] || '', 25.0, 100, 30, true, now(), now()],
-    [genId(), supplierIds[5] || '', materialIds[4] || '', 1.2, 1000, 5, true, now(), now()],
-    [genId(), supplierIds[6] || '', materialIds[5] || '', 480, 20, 45, true, now(), now()],
-    [genId(), supplierIds[0] || '', materialIds[6] || '', 95, 50, 14, true, now(), now()],
-    [genId(), supplierIds[1] || '', materialIds[7] || '', 0.05, 5000, 3, true, now(), now()],
-    [genId(), supplierIds[5] || '', materialIds[8] || '', 3.5, 200, 7, true, now(), now()],
+  // 注意：SQLite 无 boolean 类型，is_preferred 用 1/0 表示
+  const materialSupplierData: (string|number)[][] = [
+    [genId(), supplierIds[0] || '', materialIds[0] || '', 12.5, 500, 7, 1, now(), now()],
+    [genId(), supplierIds[1] || '', materialIds[0] || '', 13.0, 300, 10, 0, now(), now()],
+    [genId(), supplierIds[1] || '', materialIds[1] || '', 8.0, 200, 14, 1, now(), now()],
+    [genId(), supplierIds[0] || '', materialIds[1] || '', 8.5, 100, 14, 0, now(), now()],
+    [genId(), supplierIds[2] || '', materialIds[2] || '', 6.0, 50, 21, 1, now(), now()],
+    [genId(), supplierIds[4] || '', materialIds[3] || '', 25.0, 100, 30, 1, now(), now()],
+    [genId(), supplierIds[5] || '', materialIds[4] || '', 1.2, 1000, 5, 1, now(), now()],
+    [genId(), supplierIds[6] || '', materialIds[5] || '', 480, 20, 45, 1, now(), now()],
+    [genId(), supplierIds[0] || '', materialIds[6] || '', 95, 50, 14, 1, now(), now()],
+    [genId(), supplierIds[1] || '', materialIds[7] || '', 0.05, 5000, 3, 1, now(), now()],
+    [genId(), supplierIds[5] || '', materialIds[8] || '', 3.5, 200, 7, 1, now(), now()],
   ];
 
   for (const ms of materialSupplierData) {
