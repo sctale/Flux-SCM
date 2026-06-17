@@ -72,8 +72,10 @@ const ProcurementOptimization: React.FC = () => {
     { title: '物料', dataIndex: 'name', key: 'n' },
     { title: 'ABC', dataIndex: 'abc_class', key: 'abc', render: (v: string) => <Tag color={v === 'A' ? 'red' : v === 'B' ? 'orange' : 'green'}>{v}</Tag> },
     { title: 'XYZ', dataIndex: 'xyz_class', key: 'xyz', render: (v: string) => <Tag>{v}</Tag> },
+    { title: '提前期(天)', dataIndex: 'lead_time', key: 'lt' },
     { title: '当前安全库存', dataIndex: 'current_safety_stock', key: 'css' },
-    { title: '建议安全库存', dataIndex: 'suggested_safety_stock', key: 'sss', render: (v: number) => <Tag color="blue">{v}</Tag> },
+    { title: '建议库存天数', dataIndex: 'suggested_safety_days', key: 'ssd', render: (v: number) => <Tag color="blue">{v}天</Tag> },
+    { title: '策略', dataIndex: 'policy', key: 'p', render: (v: string) => <Tag color="cyan">{v}</Tag> },
   ];
 
   return (

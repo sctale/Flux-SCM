@@ -44,7 +44,7 @@ const mockOrders: PurchaseOrder[] = [
 ];
 
 const Orders: React.FC = () => {
-  const [helpVisible, setHelpVisible] = useState(true);
+  const [helpVisible, setHelpVisible] = useState(false);
 
   return (
     <>

@@ -58,7 +58,7 @@ const mockMaterials: Material[] = [
 const Materials: React.FC = () => {
   const [materials, setMaterials] = useState<Material[]>(mockMaterials);
   const [formOpen, setFormOpen] = useState(false);
-  const [helpVisible, setHelpVisible] = useState(true);
+  const [helpVisible, setHelpVisible] = useState(false);
 
   const handleSubmit = (data: MaterialFormData) => {
     const newMaterial: Material = {

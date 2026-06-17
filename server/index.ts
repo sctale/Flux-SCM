@@ -53,7 +53,7 @@ app.use('/api/procurement-strategy', procurementStrategyRouter);
 app.use('/api/supplier-material-matrix', supplierMaterialMatrixRouter);
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', version: '0.7.2', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: '0.7.3', timestamp: new Date().toISOString() });
 });
 
 async function start() {
