@@ -4,7 +4,7 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [0.7.3] - 2026-06-17
+## [0.7.5] - 2026-06-17
 
 ### 修复
 - **后端种子数据字段名错误**：`material_suppliers` 表 INSERT 语句使用 `moq`/`is_primary`/`lead_time`，但表结构定义的是 `min_order_qty`/`is_preferred`/`lead_time_days`，导致种子数据插入失败、合并建议/MOQ冲突/供应商-物料矩阵等功能在全新数据库下返回空数据
