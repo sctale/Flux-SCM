@@ -47,6 +47,10 @@ router.put('/:id', (req: Request, res: Response) => {
 });
 
 router.delete('/:id', (req: Request, res: Response) => {
+  // 级联清理：交付记录 → 订单明细 → 物料供应商关系 → 物料
+  // 注意：deliveries 通过 order_item_id 关联 order_items，必须先删
+  run('DELETE FROM deliveries WHERE order_item_id IN (SELECT id FROM order_items WHERE material_id = ?)', [req.params.id]);
+  run('DELETE FROM order_items WHERE material_id = ?', [req.params.id]);
   run('DELETE FROM material_suppliers WHERE material_id = ?', [req.params.id]);
   run('DELETE FROM materials WHERE id = ?', [req.params.id]);
   res.json({ success: true });
