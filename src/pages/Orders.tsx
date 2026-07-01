@@ -1,67 +1,176 @@
-import React, { useState } from 'react';
-import { Card, Button } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Card, Button, Modal, message, Spin } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import OrderList from '@/components/order/OrderList';
+import OrderForm from '@/components/order/OrderForm';
 import HelpPanel from '@/components/common/HelpPanel';
-import type { PurchaseOrder } from '@/types/order';
+import type { PurchaseOrder, OrderStatus } from '@/types/order';
 
-const mockOrders: PurchaseOrder[] = [
-  {
-    id: '1', orderNo: 'PO-2025-001', supplierId: '1', title: '精密齿轮采购', status: 'confirmed',
-    totalAmount: 156000, orderDate: '2025-06-01', expectedDate: '2025-06-20',
-    paymentTerm: '月结30天', createdBy: '张伟', createdAt: '2025-06-01T08:00:00', updatedAt: '2025-06-02T10:00:00',
-  },
-  {
-    id: '2', orderNo: 'PO-2025-002', supplierId: '2', title: '特种钢材采购', status: 'partial_delivered',
-    totalAmount: 328000, orderDate: '2025-05-20', expectedDate: '2025-06-15',
-    paymentTerm: '月结45天', createdBy: '李明', createdAt: '2025-05-20T09:00:00', updatedAt: '2025-06-10T14:00:00',
-  },
-  {
-    id: '3', orderNo: 'PO-2025-003', supplierId: '3', title: '电子元器件采购', status: 'submitted',
-    totalAmount: 89000, orderDate: '2025-06-10', expectedDate: '2025-07-05',
-    paymentTerm: '货到付款', createdBy: '王芳', createdAt: '2025-06-10T11:00:00', updatedAt: '2025-06-10T11:00:00',
-  },
-  {
-    id: '4', orderNo: 'PO-2025-004', supplierId: '4', title: '包装材料采购', status: 'delivered',
-    totalAmount: 45000, orderDate: '2025-05-15', expectedDate: '2025-05-30',
-    paymentTerm: '月结15天', createdBy: '赵刚', createdAt: '2025-05-15T10:00:00', updatedAt: '2025-05-30T16:00:00',
-  },
-  {
-    id: '5', orderNo: 'PO-2025-005', supplierId: '5', title: '机加工外协订单', status: 'draft',
-    totalAmount: 210000, orderDate: '2025-06-12', expectedDate: '2025-07-10',
-    paymentTerm: '月结30天', createdBy: '陈磊', createdAt: '2025-06-12T08:30:00', updatedAt: '2025-06-12T08:30:00',
-  },
-  {
-    id: '6', orderNo: 'PO-2025-006', supplierId: '6', title: '橡胶密封件采购', status: 'closed',
-    totalAmount: 67000, orderDate: '2025-04-01', expectedDate: '2025-04-20',
-    paymentTerm: '月结30天', createdBy: '刘洋', createdAt: '2025-04-01T09:00:00', updatedAt: '2025-05-10T10:00:00',
-  },
-  {
-    id: '7', orderNo: 'PO-2025-007', supplierId: '7', title: '磁钢采购', status: 'cancelled',
-    totalAmount: 95000, orderDate: '2025-05-10', expectedDate: '2025-06-10',
-    paymentTerm: '预付30%', createdBy: '孙鹏', createdAt: '2025-05-10T14:00:00', updatedAt: '2025-05-25T09:00:00',
-  },
-];
+const API = '/api/orders';
+
+const mapOrder = (o: any): any => ({
+  id: o.id,
+  orderNo: o.order_no,
+  supplierId: o.supplier_id,
+  supplierName: o.supplier_name,
+  title: o.title,
+  status: o.status,
+  totalAmount: o.total_amount ?? 0,
+  orderDate: o.order_date,
+  expectedDate: o.expected_date,
+  paymentTerm: o.payment_term,
+  remark: o.remark,
+  createdBy: o.created_by,
+  createdAt: o.created_at,
+  updatedAt: o.updated_at,
+});
 
 const Orders: React.FC = () => {
-  const [helpVisible, setHelpVisible] = useState(true);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
+  const [helpVisible, setHelpVisible] = useState(false);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(API);
+      const json = await res.json();
+      setOrders((json.data || []).map(mapOrder));
+    } catch (e) {
+      message.error('加载订单失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOptions = async () => {
+    try {
+      const [sRes, mRes] = await Promise.all([fetch('/api/suppliers'), fetch('/api/materials')]);
+      const sJson = await sRes.json();
+      const mJson = await mRes.json();
+      setSuppliers(sJson.data || []);
+      setMaterials(mJson.data || []);
+    } catch (e) {
+      // 忽略
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    fetchOptions();
+  }, []);
+
+  const handleAdd = () => {
+    setEditingOrder(null);
+    setFormOpen(true);
+  };
+
+  const handleEdit = (order: PurchaseOrder) => {
+    setEditingOrder(order);
+    setFormOpen(true);
+  };
+
+  const handleSubmit = async (data: any) => {
+    try {
+      if (editingOrder) {
+        const res = await fetch(`${API}/${editingOrder.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!res.ok) throw new Error('更新失败');
+        message.success('订单已更新');
+      } else {
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!res.ok) throw new Error('创建失败');
+        message.success('订单已创建');
+      }
+      setFormOpen(false);
+      fetchOrders();
+    } catch (e: any) {
+      message.error(e.message || '操作失败');
+    }
+  };
+
+  const handleDelete = (order: PurchaseOrder) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定删除订单「${order.orderNo}」吗？关联的明细和交付记录将一并清理。`,
+      okText: '删除', okType: 'danger', cancelText: '取消',
+      onOk: async () => {
+        try {
+          const res = await fetch(`${API}/${order.id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('删除失败');
+          message.success('已删除');
+          fetchOrders();
+        } catch (e: any) {
+          message.error(e.message || '删除失败');
+        }
+      },
+    });
+  };
+
+  const handleStatusChange = (order: PurchaseOrder, status: OrderStatus) => {
+    Modal.confirm({
+      title: '确认操作',
+      content: `确定将订单「${order.orderNo}」状态变更为「${status === 'cancelled' ? '已取消' : status === 'submitted' ? '已提交' : '已确认'}」吗？`,
+      onOk: async () => {
+        try {
+          const res = await fetch(`${API}/${order.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status }),
+          });
+          if (!res.ok) throw new Error('状态变更失败');
+          message.success('状态已更新');
+          fetchOrders();
+        } catch (e: any) {
+          message.error(e.message || '状态变更失败');
+        }
+      },
+    });
+  };
 
   return (
-    <>
-      <Card title="订单管理" extra={<Button icon={<QuestionCircleOutlined />} onClick={() => setHelpVisible(true)}>帮助</Button>}>
-        <OrderList orders={mockOrders} />
-      </Card>
-      <HelpPanel
-        visible={helpVisible}
-        onClose={() => setHelpVisible(false)}
-        title="订单管理帮助"
-        sections={[
-          { title: '订单流程', content: '订单管理支持完整的采购订单生命周期：\n\n1. 草稿 → 新建订单，填写基本信息\n2. 已提交 → 提交给供应商确认\n3. 已确认 → 供应商确认接单\n4. 部分交付 → 逐步收货\n5. 已交付 → 全部收货完成\n6. 已关闭 → 订单完结\n\n任何阶段均可取消订单' },
-          { title: '订单创建', content: '点击"新建订单"按钮，选择供应商后添加物料明细。\n\n系统自动计算订单金额，支持设置付款条件和期望交付日期。' },
-          { title: '交付跟踪', content: '在订单详情中可录入交付记录，包括交付数量、合格数量和检验结果。\n\n系统自动更新已交付数量，便于跟踪交付进度。' },
-        ]}
-      />
-    </>
+    <Spin spinning={loading} tip="数据加载中...">
+      <>
+        <Card title="订单管理" extra={<Button icon={<QuestionCircleOutlined />} onClick={() => setHelpVisible(true)}>帮助</Button>}>
+          <OrderList
+            orders={orders}
+            onAdd={handleAdd}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onStatusChange={handleStatusChange}
+          />
+        </Card>
+        <OrderForm
+          open={formOpen}
+          editingOrder={editingOrder}
+          suppliers={suppliers}
+          materials={materials}
+          onClose={() => setFormOpen(false)}
+          onSubmit={handleSubmit}
+        />
+        <HelpPanel
+          visible={helpVisible}
+          onClose={() => setHelpVisible(false)}
+          title="订单管理帮助"
+          sections={[
+            { title: '订单流程', content: '订单管理支持完整的采购订单生命周期：\n\n1. 草稿 → 新建订单，填写基本信息\n2. 已提交 → 提交给供应商确认\n3. 已确认 → 供应商确认接单\n4. 部分交付 → 逐步收货\n5. 已交付 → 全部收货完成\n6. 已关闭 → 订单完结\n\n任何阶段均可取消订单' },
+            { title: '订单创建', content: '点击"新建订单"按钮，选择供应商后添加物料明细。\n\n系统自动计算订单金额，支持设置付款条件和期望交付日期。' },
+            { title: '交付跟踪', content: '在订单详情中可录入交付记录，包括交付数量、合格数量和检验结果。\n\n系统自动更新已交付数量，便于跟踪交付进度。' },
+          ]}
+        />
+      </>
+    </Spin>
   );
 };
 
