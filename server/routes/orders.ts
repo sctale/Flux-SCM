@@ -15,6 +15,8 @@ const asyncHandler = (fn: (req: Request, res: Response) => void) => (req: Reques
 };
 
 // 订单状态流转白名单（状态机）
+// draft → submitted → confirmed → partial_delivered → delivered → closed
+// 任意阶段均可 → cancelled（终态）
 const statusTransitions: Record<string, string[]> = {
   draft: ['submitted', 'cancelled'],
   submitted: ['confirmed', 'cancelled'],
@@ -82,7 +84,7 @@ router.put('/:id', asyncHandler((req, res) => {
   const existing = queryOne('SELECT id, status FROM purchase_orders WHERE id = ?', [req.params.id]) as any;
   if (!existing) return res.status(404).json({ error: '未找到订单' });
 
-  // 状态流转校验
+  // 状态流转校验（状态机白名单）
   if (b.status && b.status !== existing.status) {
     const allowed = statusTransitions[existing.status] || [];
     if (!allowed.includes(b.status)) {
@@ -105,8 +107,8 @@ router.put('/:id', asyncHandler((req, res) => {
 router.delete('/:id', asyncHandler((req, res) => {
   const exists = queryOne('SELECT id FROM purchase_orders WHERE id = ?', [req.params.id]);
   if (!exists) return res.status(404).json({ error: '未找到订单' });
-  run('DELETE FROM deliveries WHERE order_id = ?', [req.params.id]);
   run('DELETE FROM order_items WHERE order_id = ?', [req.params.id]);
+  run('DELETE FROM deliveries WHERE order_id = ?', [req.params.id]);
   run('DELETE FROM purchase_orders WHERE id = ?', [req.params.id]);
   res.json({ success: true });
 }));

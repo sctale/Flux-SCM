@@ -7,6 +7,8 @@ import type { ABCClass, XYZClass } from '@/types/common';
 interface MaterialListProps {
   materials: Material[];
   onAdd: () => void;
+  onEdit?: (material: Material) => void;
+  onDelete?: (material: Material) => void;
 }
 
 const abcColorMap: Record<ABCClass, string> = { A: 'red', B: 'orange', C: 'green' };
@@ -14,7 +16,7 @@ const xyzColorMap: Record<XYZClass, string> = { X: 'blue', Y: 'gold', Z: 'volcan
 const abcLabelMap: Record<ABCClass, string> = { A: 'A类', B: 'B类', C: 'C类' };
 const xyzLabelMap: Record<XYZClass, string> = { X: 'X类', Y: 'Y类', Z: 'Z类' };
 
-const MaterialList: React.FC<MaterialListProps> = ({ materials, onAdd }) => {
+const MaterialList: React.FC<MaterialListProps> = ({ materials, onAdd, onEdit, onDelete }) => {
   const [searchText, setSearchText] = useState('');
 
   const filtered = materials.filter((m) => {
@@ -33,6 +35,15 @@ const MaterialList: React.FC<MaterialListProps> = ({ materials, onAdd }) => {
     { title: '变异系数', dataIndex: 'coefficientOfVariation', key: 'coefficientOfVariation', width: 100, render: (v: number) => v !== undefined ? v.toFixed(2) : '-' },
     { title: '安全库存', dataIndex: 'safetyStock', key: 'safetyStock', width: 90 },
     { title: '采购提前期', dataIndex: 'leadTime', key: 'leadTime', width: 100, render: (v: number) => `${v}天` },
+    {
+      title: '操作', key: 'action', width: 120,
+      render: (_: any, record: Material) => (
+        <Space>
+          {onEdit && <Button size="small" onClick={() => onEdit(record)}>编辑</Button>}
+          {onDelete && <Button size="small" danger onClick={() => onDelete(record)}>删除</Button>}
+        </Space>
+      ),
+    },
   ];
 
   return (

@@ -8,6 +8,7 @@ import type { PurchaseOrder, OrderStatus } from '@/types/order';
 
 const API = '/api/orders';
 
+// 后端蛇形命名 → 前端驼峰命名映射
 const mapOrder = (o: any): any => ({
   id: o.id,
   orderNo: o.order_no,
@@ -47,6 +48,7 @@ const Orders: React.FC = () => {
     }
   };
 
+  // 加载供应商和物料选项（OrderForm 需要）
   const fetchOptions = async () => {
     try {
       const [sRes, mRes] = await Promise.all([fetch('/api/suppliers'), fetch('/api/materials')]);
@@ -55,7 +57,7 @@ const Orders: React.FC = () => {
       setSuppliers(sJson.data || []);
       setMaterials(mJson.data || []);
     } catch (e) {
-      // 忽略
+      // 忽略选项加载失败
     }
   };
 
@@ -82,7 +84,10 @@ const Orders: React.FC = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         });
-        if (!res.ok) throw new Error('更新失败');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || '更新失败');
+        }
         message.success('订单已更新');
       } else {
         const res = await fetch(API, {
@@ -90,7 +95,10 @@ const Orders: React.FC = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         });
-        if (!res.ok) throw new Error('创建失败');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || '创建失败');
+        }
         message.success('订单已创建');
       }
       setFormOpen(false);
@@ -118,6 +126,7 @@ const Orders: React.FC = () => {
     });
   };
 
+  // 订单状态变更（状态机校验由后端负责）
   const handleStatusChange = (order: PurchaseOrder, status: OrderStatus) => {
     Modal.confirm({
       title: '确认操作',
@@ -129,7 +138,10 @@ const Orders: React.FC = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status }),
           });
-          if (!res.ok) throw new Error('状态变更失败');
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || '状态变更失败');
+          }
           message.success('状态已更新');
           fetchOrders();
         } catch (e: any) {
@@ -166,7 +178,7 @@ const Orders: React.FC = () => {
           sections={[
             { title: '订单流程', content: '订单管理支持完整的采购订单生命周期：\n\n1. 草稿 → 新建订单，填写基本信息\n2. 已提交 → 提交给供应商确认\n3. 已确认 → 供应商确认接单\n4. 部分交付 → 逐步收货\n5. 已交付 → 全部收货完成\n6. 已关闭 → 订单完结\n\n任何阶段均可取消订单' },
             { title: '订单创建', content: '点击"新建订单"按钮，选择供应商后添加物料明细。\n\n系统自动计算订单金额，支持设置付款条件和期望交付日期。' },
-            { title: '交付跟踪', content: '在订单详情中可录入交付记录，包括交付数量、合格数量和检验结果。\n\n系统自动更新已交付数量，便于跟踪交付进度。' },
+            { title: '状态机校验', content: '订单状态变更遵循白名单规则：\n\n- 草稿 → 已提交/已取消\n- 已提交 → 已确认/已取消\n- 已确认 → 部分交付/已交付/已取消\n- 部分交付 → 已交付/已取消\n- 已交付 → 已关闭\n\n非法状态变更会被后端拒绝。' },
           ]}
         />
       </>

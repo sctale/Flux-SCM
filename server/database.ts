@@ -253,7 +253,7 @@ function seedIfNeeded(db: Database) {
   const materialIds = materialResult[0]?.values.map(r => r[0] as string) || [];
 
   const tcoData = [
-    [genId(), supplierIds[0] || '', materialIds[0] || '', 12.5, 0.8, 0.3, 0.15, 0.2, 0.1, 0.05, 0.02, 0.01, 0.05, 14.68, '不锈钢螺栓TCO分析', now(), now()],
+    [genId(), supplierIds[0] || '', materialIds[0] || '', 12.5, 0.8, 0.3, 0.15, 0.2, 0.1, 0.05, 0.02, 0.01, 0.05, 14.18, '不锈钢螺栓TCO分析', now(), now()],
     [genId(), supplierIds[1] || '', materialIds[1] || '', 8.0, 0.5, 0.2, 0.1, 0.15, 0.08, 0.04, 0.01, 0.01, 0.03, 9.12, '铜制电阻TCO分析', now(), now()],
     [genId(), supplierIds[4] || '', materialIds[3] || '', 25.0, 1.2, 0.5, 0.3, 0.4, 0.15, 0.08, 0.03, 0.02, 0.08, 27.76, '钕铁硼磁钢TCO分析', now(), now()],
     [genId(), supplierIds[2] || '', materialIds[2] || '', 6.0, 0.6, 0.15, 0.08, 0.3, 0.2, 0.06, 0.02, 0.01, 0.04, 7.46, '压缩弹簧TCO分析-高延迟成本', now(), now()],
@@ -276,17 +276,37 @@ function seedIfNeeded(db: Database) {
     db.run(`INSERT INTO should_cost_analyses (id, supplier_id, material_id, material_cost, labor_cost, overhead_cost, equipment_cost, logistics_cost, profit_margin, should_cost_total, quoted_price, variance_pct, remark, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, s);
   }
 
-  // 供应商积分卡种子数据
+  // 供应商积分卡种子数据（加权总分 = 各维度分数×权重之和，等级: ≥90=A, ≥80=B, ≥70=C, ≥60=D, else=F）
   const scorecardData = [
-    [genId(), supplierIds[0] || '', 90, 0.30, 85, 0.25, 92, 0.25, 85, 0.10, 88, 0.10, 88.55, 'A', '2026-Q2', '精密机械-Q2评分', now(), now()],
-    [genId(), supplierIds[1] || '', 85, 0.30, 80, 0.25, 82, 0.25, 78, 0.10, 75, 0.10, 81.5, 'B', '2026-Q2', '华通电子-Q2评分', now(), now()],
-    [genId(), supplierIds[2] || '', 75, 0.30, 70, 0.25, 72, 0.25, 68, 0.10, 60, 0.10, 71.5, 'C', '2026-Q2', '恒力弹簧-Q2评分', now(), now()],
-    [genId(), supplierIds[4] || '', 95, 0.30, 88, 0.25, 90, 0.25, 90, 0.10, 92, 0.10, 91.2, 'A', '2026-Q2', '东方磁材-Q2评分', now(), now()],
-    [genId(), supplierIds[5] || '', 82, 0.30, 76, 0.25, 80, 0.25, 77, 0.10, 70, 0.10, 78.1, 'B', '2026-Q2', '永泰橡胶-Q2评分', now(), now()],
-    [genId(), supplierIds[6] || '', 70, 0.30, 65, 0.25, 68, 0.25, 62, 0.10, 55, 0.10, 65.5, 'C', '2026-Q2', '宏达电机-Q2评分', now(), now()],
+    [genId(), supplierIds[0] || '', 90, 0.30, 85, 0.25, 92, 0.25, 85, 0.10, 88, 0.10, 88.55, 'B', '2026-Q2', '精密机械-Q2评分', now(), now()],
+    [genId(), supplierIds[1] || '', 85, 0.30, 80, 0.25, 82, 0.25, 78, 0.10, 75, 0.10, 81.30, 'B', '2026-Q2', '华通电子-Q2评分', now(), now()],
+    [genId(), supplierIds[2] || '', 75, 0.30, 70, 0.25, 72, 0.25, 68, 0.10, 60, 0.10, 70.80, 'C', '2026-Q2', '恒力弹簧-Q2评分', now(), now()],
+    [genId(), supplierIds[4] || '', 95, 0.30, 88, 0.25, 90, 0.25, 90, 0.10, 92, 0.10, 91.20, 'A', '2026-Q2', '东方磁材-Q2评分', now(), now()],
+    [genId(), supplierIds[5] || '', 82, 0.30, 76, 0.25, 80, 0.25, 77, 0.10, 70, 0.10, 78.30, 'C', '2026-Q2', '永泰橡胶-Q2评分', now(), now()],
+    [genId(), supplierIds[6] || '', 70, 0.30, 65, 0.25, 68, 0.25, 62, 0.10, 55, 0.10, 65.95, 'D', '2026-Q2', '宏达电机-Q2评分', now(), now()],
   ];
 
   for (const sc of scorecardData) {
     db.run(`INSERT INTO supplier_scorecards (id, supplier_id, quality_score, quality_weight, cost_score, cost_weight, delivery_score, delivery_weight, service_score, service_weight, innovation_score, innovation_weight, weighted_total, grade, period, remark, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, sc);
+  }
+
+  // 供应商-物料关系种子数据（支持合并建议、MOQ冲突、供应商-物料矩阵等功能）
+  // 注意：SQLite 无 boolean 类型，is_preferred 用 1/0 表示
+  const materialSupplierData: (string|number)[][] = [
+    [genId(), supplierIds[0] || '', materialIds[0] || '', 12.5, 500, 7, 1, now(), now()],
+    [genId(), supplierIds[1] || '', materialIds[0] || '', 13.0, 300, 10, 0, now(), now()],
+    [genId(), supplierIds[1] || '', materialIds[1] || '', 8.0, 200, 14, 1, now(), now()],
+    [genId(), supplierIds[0] || '', materialIds[1] || '', 8.5, 100, 14, 0, now(), now()],
+    [genId(), supplierIds[2] || '', materialIds[2] || '', 6.0, 50, 21, 1, now(), now()],
+    [genId(), supplierIds[4] || '', materialIds[3] || '', 25.0, 100, 30, 1, now(), now()],
+    [genId(), supplierIds[5] || '', materialIds[4] || '', 1.2, 1000, 5, 1, now(), now()],
+    [genId(), supplierIds[6] || '', materialIds[5] || '', 480, 20, 45, 1, now(), now()],
+    [genId(), supplierIds[0] || '', materialIds[6] || '', 95, 50, 14, 1, now(), now()],
+    [genId(), supplierIds[1] || '', materialIds[7] || '', 0.05, 5000, 3, 1, now(), now()],
+    [genId(), supplierIds[5] || '', materialIds[8] || '', 3.5, 200, 7, 1, now(), now()],
+  ];
+
+  for (const ms of materialSupplierData) {
+    db.run(`INSERT INTO material_suppliers (id, supplier_id, material_id, unit_price, min_order_qty, lead_time_days, is_preferred, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)`, ms);
   }
 }

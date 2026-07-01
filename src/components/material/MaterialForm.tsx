@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, InputNumber, Row, Col } from 'antd';
-import type { MaterialFormData } from '@/types/material';
+import type { Material, MaterialFormData } from '@/types/material';
 import { generateMaterialCode, categoryCodeMap, materialTypeCodeMap } from '@/utils/coding';
 
 interface MaterialFormProps {
   open: boolean;
+  editingMaterial?: Material | null;
   onClose: () => void;
   onSubmit: (data: MaterialFormData) => void;
 }
 
-const MaterialForm: React.FC<MaterialFormProps> = ({ open, onClose, onSubmit }) => {
+const MaterialForm: React.FC<MaterialFormProps> = ({ open, editingMaterial, onClose, onSubmit }) => {
   const [form] = Form.useForm<MaterialFormData>();
   const [autoCode, setAutoCode] = useState('');
 
@@ -17,7 +18,21 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ open, onClose, onSubmit }) 
   const materialType = Form.useWatch('materialType', form);
 
   useEffect(() => {
-    if (category && materialType) {
+    if (editingMaterial) {
+      form.setFieldsValue({
+        code: editingMaterial.code,
+        name: editingMaterial.name,
+        specification: editingMaterial.specification,
+        unit: editingMaterial.unit,
+        category: editingMaterial.category,
+        materialType: editingMaterial.materialType,
+        safetyStock: editingMaterial.safetyStock,
+        leadTime: editingMaterial.leadTime,
+        drawingNo: editingMaterial.drawingNo,
+        remark: editingMaterial.remark,
+      });
+      setAutoCode(editingMaterial.code);
+    } else if (category && materialType) {
       const code = generateMaterialCode({
         category: categoryCodeMap[category] || category,
         materialType: materialTypeCodeMap[materialType] || materialType,
@@ -26,7 +41,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ open, onClose, onSubmit }) 
       setAutoCode(code);
       form.setFieldValue('code', code);
     }
-  }, [category, materialType, form]);
+  }, [category, materialType, editingMaterial, form]);
 
   useEffect(() => {
     if (!open) {
@@ -41,22 +56,22 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ open, onClose, onSubmit }) 
   };
 
   return (
-    <Modal title="新增物料" open={open} onOk={handleOk} onCancel={onClose} width={640} destroyOnClose>
+    <Modal title={editingMaterial ? '编辑物料' : '新增物料'} open={open} onOk={handleOk} onCancel={onClose} width={640} destroyOnClose>
       <Form form={form} layout="vertical">
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="category" label="物料类别" rules={[{ required: true, message: '请选择物料类别' }]}>
-              <Select placeholder="请选择类别" options={Object.keys(categoryCodeMap).map((k) => ({ value: k, label: k }))} />
+              <Select placeholder="请选择类别" options={Object.keys(categoryCodeMap).map((k) => ({ value: k, label: k }))} disabled={!!editingMaterial} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="materialType" label="材质类型" rules={[{ required: true, message: '请选择材质类型' }]}>
-              <Select placeholder="请选择材质" options={Object.keys(materialTypeCodeMap).map((k) => ({ value: k, label: k }))} />
+              <Select placeholder="请选择材质" options={Object.keys(materialTypeCodeMap).map((k) => ({ value: k, label: k }))} disabled={!!editingMaterial} />
             </Form.Item>
           </Col>
         </Row>
         <Form.Item name="code" label="物料编码" rules={[{ required: true, message: '请输入物料编码' }]} extra={autoCode ? `自动生成: ${autoCode}` : '选择类别和材质后自动生成'}>
-          <Input placeholder="物料编码" />
+          <Input placeholder="物料编码" disabled={!!editingMaterial} />
         </Form.Item>
         <Form.Item name="name" label="物料名称" rules={[{ required: true, message: '请输入物料名称' }]}>
           <Input placeholder="请输入物料名称" />

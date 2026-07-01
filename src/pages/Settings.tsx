@@ -106,7 +106,6 @@ const ScoringSettings: React.FC = () => {
 
   const handleSave = () => {
     form.validateFields().then((values) => {
-      // 滑块输入是百分比(0-100)，权重总和必须为100%
       const total = values.quality + values.cost + values.delivery + values.service;
       if (total !== 100) {
         message.error(`权重总和必须为100%，当前为${total}%`);

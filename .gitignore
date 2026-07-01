@@ -5,3 +5,15 @@ release/
 *.db-journal
 .env
 .DS_Store
+
+# 后端 TypeScript 编译产物
+server/**/*.js
+server/*.js
+
+# Electron 构建缓存（本地构建产物，不应提交）
+.electron-cache/
+.electron-builder-cache/
+
+# 调试日志
+npminstall-debug.log
+*.log

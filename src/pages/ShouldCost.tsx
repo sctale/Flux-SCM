@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Modal, Form, Select, InputNumber, Row, Col, Statistic, Tag, message } from 'antd';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, Table, Button, Modal, Form, Select, InputNumber, Input, Row, Col, Statistic, Tag, message } from 'antd';
 import { AuditOutlined, PlusOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 
@@ -18,6 +18,7 @@ const ShouldCost: React.FC = () => {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
 
   const fetchData = () => { fetch(API).then(r => r.json()).then(setData).catch(() => message.error('加载失败')); };
@@ -27,8 +28,16 @@ const ShouldCost: React.FC = () => {
   };
   useEffect(() => { fetchData(); fetchOptions(); }, []);
 
+  // 汇总统计
+  const stats = useMemo(() => {
+    const avgVariance = data.length ? (data.reduce((s, d) => s + d.variance_pct, 0) / data.length) : 0;
+    const overPriced = data.filter(d => d.variance_pct > 5).length;
+    const reasonable = data.filter(d => Math.abs(d.variance_pct) <= 5).length;
+    return { avgVariance, overPriced, reasonable };
+  }, [data]);
+
   // 应该成本 vs 报价对比柱状图
-  const compareBarOption = {
+  const compareBarOption = useMemo(() => ({
     title: { text: '应该成本 vs 报价对比', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
     legend: { bottom: 0, data: ['应该成本', '报价'] },
@@ -38,10 +47,10 @@ const ShouldCost: React.FC = () => {
       { name: '应该成本', type: 'bar', data: data.map(d => d.should_cost_total), itemStyle: { color: '#52c41a' } },
       { name: '报价', type: 'bar', data: data.map(d => d.quoted_price), itemStyle: { color: '#ff4d4f' } },
     ]
-  };
+  }), [data]);
 
   // 偏差率分布图
-  const varianceOption = {
+  const varianceOption = useMemo(() => ({
     title: { text: '偏差率分布', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
     xAxis: { type: 'category', data: data.map(d => d.material_name?.substring(0, 6) || '') },
@@ -53,25 +62,48 @@ const ShouldCost: React.FC = () => {
       })),
       label: { show: true, formatter: '{c}%' }
     }]
-  };
+  }), [data]);
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    await fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(values),
-    });
-    message.success('应该成本分析已创建');
-    setModalVisible(false);
-    form.resetFields();
-    fetchData();
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+      if (!res.ok) throw new Error('创建失败');
+      message.success('应该成本分析已创建');
+      setModalVisible(false);
+      form.resetFields();
+      fetchData();
+    } catch (e: any) {
+      if (e.errorFields) return;
+      message.error(e.message || '创建失败');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    await fetch(`${API}/${id}`, { method: 'DELETE' });
-    message.success('已删除');
-    fetchData();
+  const handleDelete = (id: string) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除这条应该成本分析记录吗？此操作不可恢复。',
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('删除失败');
+          message.success('已删除');
+          fetchData();
+        } catch (e: any) {
+          message.error(e.message || '删除失败');
+        }
+      },
+    });
   };
 
   const columns = [
@@ -94,9 +126,9 @@ const ShouldCost: React.FC = () => {
     <div>
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}><Card><Statistic title="分析数" value={data.length} prefix={<AuditOutlined />} /></Card></Col>
-        <Col span={6}><Card><Statistic title="平均偏差率" value={data.length ? (data.reduce((s, d) => s + d.variance_pct, 0) / data.length).toFixed(1) : 0} suffix="%" valueStyle={{ color: data.length && data.reduce((s, d) => s + d.variance_pct, 0) / data.length > 5 ? '#ff4d4f' : '#52c41a' }} /></Card></Col>
-        <Col span={6}><Card><Statistic title="报价偏高数" value={data.filter(d => d.variance_pct > 5).length} valueStyle={{ color: '#ff4d4f' }} /></Card></Col>
-        <Col span={6}><Card><Statistic title="合理报价数" value={data.filter(d => Math.abs(d.variance_pct) <= 5).length} valueStyle={{ color: '#52c41a' }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="平均偏差率" value={stats.avgVariance.toFixed(1)} suffix="%" valueStyle={{ color: stats.avgVariance > 5 ? '#ff4d4f' : '#52c41a' }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="报价偏高数" value={stats.overPriced} valueStyle={{ color: '#ff4d4f' }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="合理报价数" value={stats.reasonable} valueStyle={{ color: '#52c41a' }} /></Card></Col>
       </Row>
 
       <Row gutter={16} style={{ marginBottom: 16 }}>
@@ -105,7 +137,7 @@ const ShouldCost: React.FC = () => {
       </Row>
 
       <Card title="应该成本分析明细" size="small" extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建分析</Button>}>
-        <Table dataSource={data} columns={columns} rowKey="id" size="small" pagination={false}
+        <Table dataSource={data} columns={columns} rowKey="id" size="small" pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
           expandable={{
             expandedRowRender: (record: ShouldCostRecord) => {
               const costs = [
@@ -133,7 +165,7 @@ const ShouldCost: React.FC = () => {
         />
       </Card>
 
-      <Modal title="新建应该成本分析" open={modalVisible} onOk={handleSubmit} onCancel={() => { setModalVisible(false); form.resetFields(); }} width={600}>
+      <Modal title="新建应该成本分析" open={modalVisible} onOk={handleSubmit} confirmLoading={submitting} onCancel={() => { setModalVisible(false); form.resetFields(); }} width={600}>
         <Form form={form} layout="vertical">
           <Row gutter={16}>
             <Col span={12}><Form.Item name="supplier_id" label="供应商" rules={[{ required: true }]}><Select options={suppliers.map((s: any) => ({ value: s.id, label: s.name }))} placeholder="选择供应商" /></Form.Item></Col>
@@ -150,7 +182,7 @@ const ShouldCost: React.FC = () => {
             <Col span={8}><Form.Item name="profit_margin" label="合理利润" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
           </Row>
           <Form.Item name="quoted_price" label="供应商报价" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} addonAfter="元" /></Form.Item>
-          <Form.Item name="remark" label="备注"><div /></Form.Item>
+          <Form.Item name="remark" label="备注"><Input.TextArea rows={2} placeholder="可选" /></Form.Item>
         </Form>
       </Modal>
     </div>

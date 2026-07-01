@@ -38,7 +38,8 @@ export function getPerformanceGrade(score: number): PerformanceGrade {
   if (score >= 90) return 'A';
   if (score >= 80) return 'B';
   if (score >= 70) return 'C';
-  return 'D';
+  if (score >= 60) return 'D';
+  return 'F';
 }
 
 export function calculateDeliveryScore(totalOrders: number, onTimeOrders: number): number {
@@ -56,4 +57,5 @@ export const gradeColors: Record<PerformanceGrade, string> = {
   B: '#1677FF',
   C: '#FAAD14',
   D: '#FF4D4F',
+  F: '#8C8C8C',
 };

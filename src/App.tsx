@@ -1,5 +1,6 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Result, Button } from 'antd';
 import AppLayout from './components/layout/AppLayout';
 import Dashboard from './pages/Dashboard';
 import Suppliers from './pages/Suppliers';
@@ -12,8 +13,17 @@ import Scorecards from './pages/Scorecards';
 import ProcurementOptimization from './pages/ProcurementOptimization';
 import ProcurementStrategy from './pages/ProcurementStrategy';
 
+const NotFound: React.FC = () => (
+  <Result
+    status="404"
+    title="404"
+    subTitle="抱歉，您访问的页面不存在。"
+    extra={<Button type="primary" onClick={() => window.location.hash = '#/'}>返回首页</Button>}
+  />
+);
+
 const App: React.FC = () => (
-  <BrowserRouter>
+  <HashRouter>
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
@@ -26,9 +36,10 @@ const App: React.FC = () => (
         <Route path="/procurement/optimization" element={<ProcurementOptimization />} />
         <Route path="/procurement/strategy" element={<ProcurementStrategy />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
-  </BrowserRouter>
+  </HashRouter>
 );
 
 export default App;

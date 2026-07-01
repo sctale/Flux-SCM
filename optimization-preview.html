@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flux-SCM v0.7.6 代码审查与优化预览</title>
+  <style>
+    :root { --primary: #1677ff; --success: #52c41a; --warning: #faad14; --danger: #ff4d4f; --text: #333; --muted: #666; --bg: #f5f7fa; --card: #fff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    .container { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
+    header { text-align: center; margin-bottom: 32px; }
+    header h1 { margin: 0 0 8px; font-size: 28px; }
+    header p { margin: 0; color: var(--muted); }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 8px; }
+    .badge.success { background: #e6ffed; color: #237804; }
+    .badge.warning { background: #fffbe6; color: #ad6800; }
+    .badge.danger { background: #fff1f0; color: #a8071a; }
+    .card { background: var(--card); border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); padding: 24px; margin-bottom: 24px; }
+    .card h2 { margin: 0 0 16px; font-size: 20px; border-left: 4px solid var(--primary); padding-left: 12px; }
+    .card h3 { margin: 24px 0 12px; font-size: 16px; color: var(--primary); }
+    ul { margin: 0; padding-left: 20px; }
+    li { margin-bottom: 10px; }
+    code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; }
+    .file { color: var(--primary); font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .summary-item { background: var(--card); border-radius: 8px; padding: 16px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    .summary-item .num { font-size: 28px; font-weight: 700; color: var(--primary); }
+    .summary-item .label { color: var(--muted); font-size: 14px; }
+    .tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 12px; margin-right: 6px; }
+    .tag.fix { background: #e6ffed; color: #237804; }
+    .tag.opt { background: #e6f7ff; color: #0050b3; }
+    .tag.todo { background: #fff1f0; color: #a8071a; }
+    .footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 40px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Flux-SCM 代码审查与优化预览 <span class="badge success">v0.7.6</span></h1>
+      <p>基于供应商管理专家 + 全栈专家视角的静态审查结果，本次不构建，仅做 HTML 预览。</p>
+    </header>
+
+    <div class="summary">
+      <div class="summary-item"><div class="num">6</div><div class="label">已修复问题</div></div>
+      <div class="summary-item"><div class="num">4</div><div class="label">接入真实 API 页面</div></div>
+      <div class="summary-item"><div class="num">8</div><div class="label">下一步优化建议</div></div>
+      <div class="summary-item"><div class="num">0</div><div class="label">GitHub Actions 触发</div></div>
+    </div>
+
+    <div class="card">
+      <h2>本次已完成的修复（v0.7.6）</h2>
+      <ul>
+        <li><span class="tag fix">修复</span><strong>Dashboard / 供应商 / 物料 / 订单 仍使用 mock 数据</strong>：全部接入真实后端 API，数据持久化到 sql.js 数据库。
+          <br><span class="file">src/pages/Dashboard.tsx</span>、<span class="file">src/pages/Suppliers.tsx</span>、<span class="file">src/pages/Materials.tsx</span>、<span class="file">src/pages/Orders.tsx</span>
+        </li>
+        <li><span class="tag fix">修复</span><strong>供应商 / 物料 缺少完整 CRUD 闭环</strong>：列表新增编辑/删除按钮，表单对接后端 POST/PUT/DELETE，删除前统一二次确认。
+          <br><span class="file">src/components/supplier/SupplierList.tsx</span>、<span class="file">src/components/material/MaterialList.tsx</span>、<span class="file">src/components/material/MaterialForm.tsx</span>
+        </li>
+        <li><span class="tag fix">修复</span><strong>绩效等级类型缺失 F 等级</strong>：前端 <code>PerformanceGrade</code>、<code>getPerformanceGrade</code>、<code>gradeColors</code> 全部对齐后端（≥90 A / ≥80 B / ≥70 C / ≥60 D / &lt;60 F）。
+          <br><span class="file">src/types/common.ts</span>、<span class="file">src/utils/scoring.ts</span>
+        </li>
+        <li><span class="tag fix">修复</span><strong>设置页评分权重校验错误</strong>：滑块单位为百分比，原校验却按总和 1.0 判断，已改为校验 100%。
+          <br><span class="file">src/pages/Settings.tsx</span>
+        </li>
+        <li><span class="tag fix">修复</span><strong>物料级联删除遗漏交付记录</strong>：删除物料前先清理 <code>deliveries</code> 中引用被删 <code>order_items</code> 的记录，避免脏数据。
+          <br><span class="file">server/routes/materials.ts</span>
+        </li>
+        <li><span class="tag fix">修复</span><strong>安全库存仅返回天数</strong>：在原有缓冲策略基础上，增加基于平均单价和年消耗金额反推的「建议安全库存数量」，闭环金额→数量的单位换算。
+          <br><span class="file">server/routes/safetyStock.ts</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>下一步优化建议（按优先级）</h2>
+
+      <h3>高优先级：业务逻辑闭环</h3>
+      <ul>
+        <li><span class="tag todo">待办</span><strong>采购订单需要真正的创建/编辑/删除</strong>：当前仅做查看。建议新增订单表单，选择供应商并动态添加物料明细，后端自动汇总金额；删除订单时级联清理明细与交付记录。</li>
+        <li><span class="tag todo">待办</span><strong>供应商/物料的 ABC-XYZ、卡拉杰克矩阵应自动计算</strong>：目前矩阵数据依赖人工录入。可基于采购金额、交付延迟、需求波动等自动打分并回写数据库。</li>
+        <li><span class="tag todo">待办</span><strong>订单状态流转缺少状态机校验</strong>：例如 <code>delivered</code> 不应直接回到 <code>draft</code>，<code>cancelled</code> 不应再收货。建议在后端增加状态流转白名单。</li>
+        <li><span class="tag todo">待办</span><strong>交付记录与订单状态联动</strong>：当前 <code>deliveries</code> 表存在但无录入入口；录入交付后应自动更新 <code>order_items.delivered_qty</code> 与主订单状态。</li>
+      </ul>
+
+      <h3>中优先级：健壮性与体验</h3>
+      <ul>
+        <li><span class="tag opt">建议</span><strong>TCO / Should-Cost / Scorecards 路由统一错误处理与校验</strong>：目前为裸 <code>try/catch</code>，缺少必填项校验和 404 检查，建议参照 <code>suppliers.ts</code> 的 <code>asyncHandler</code> 包装。</li>
+        <li><span class="tag opt">建议</span><strong>设置页评分权重未持久化</strong>：保存后仅提示成功，未写入 localStorage 或同步到 Scorecards。建议接入 Zustand persist 并与积分卡权重打通。</li>
+        <li><span class="tag opt">建议</span><strong>前端 fetch 缺少统一封装</strong>：各页面重复写 <code>fetch(API)</code>、<code>res.json()</code>、错误提示。建议抽离 <code>request.ts</code>，统一处理 Content-Type、HTTP 错误、超时。</li>
+        <li><span class="tag opt">建议</span><strong>大数据量表格性能</strong>：当供应商/物料超过 200 条时，可考虑虚拟滚动、服务端分页或关键词防抖搜索。</li>
+      </ul>
+
+      <h3>低优先级：细节打磨</h3>
+      <ul>
+        <li><span class="tag opt">建议</span><strong>空状态优化</strong>：列表、图表在数据为空时应展示 <code>Empty</code> 组件与引导操作，而不是空白或 0 值。</li>
+        <li><span class="tag opt">建议</span><strong>表单字段补全校验</strong>：如统一社会信用代码格式、邮箱/手机号正则、物料编码唯一性校验。</li>
+        <li><span class="tag opt">建议</span><strong>Electron 打包入口验证</strong>：确认 <code>electron/main.js</code> 在构建后正确加载 <code>dist/index.html</code>，并验证 SPA fallback 与 HashRouter 的协同。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>验证结果</h2>
+      <ul>
+        <li><span class="badge success">通过</span> TypeScript 静态检查：<code>npx tsc --noEmit</code> 无错误。</li>
+        <li><span class="badge success">通过</span> 代码已提交并推送到 GitHub main 分支，commit 包含 <code>[skip ci]</code>，未触发 GitHub Actions。</li>
+        <li><span class="badge warning">注意</span> 未创建 Release / Tag：因本月 GitHub Actions 额度已耗尽，避免 tag push 触发 Electron 构建工作流，Release 将在 Actions 额度恢复后补充。</li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      Flux-SCM · 生成时间：2026-06-22 · 版本 v0.7.6
+    </div>
+  </div>
+</body>
+</html>

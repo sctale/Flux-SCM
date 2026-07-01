@@ -108,21 +108,26 @@ const Scorecards: React.FC = () => {
     const total = weights.quality + weights.cost + weights.delivery + weights.service + weights.innovation;
     if (total !== 100) { message.error(`权重总和必须为100%，当前为${total}%`); return; }
 
-    await fetch(`${API}/${editingRecord.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...editingRecord,
-        quality_weight: weights.quality / 100,
-        cost_weight: weights.cost / 100,
-        delivery_weight: weights.delivery / 100,
-        service_weight: weights.service / 100,
-        innovation_weight: weights.innovation / 100,
-      }),
-    });
-    message.success('权重已更新');
-    setWeightModalVisible(false);
-    fetchData();
+    try {
+      const res = await fetch(`${API}/${editingRecord.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...editingRecord,
+          quality_weight: weights.quality / 100,
+          cost_weight: weights.cost / 100,
+          delivery_weight: weights.delivery / 100,
+          service_weight: weights.service / 100,
+          innovation_weight: weights.innovation / 100,
+        }),
+      });
+      if (!res.ok) throw new Error('更新失败');
+      message.success('权重已更新');
+      setWeightModalVisible(false);
+      fetchData();
+    } catch (e: any) {
+      message.error(e.message || '更新失败');
+    }
   };
 
   return (
@@ -141,7 +146,7 @@ const Scorecards: React.FC = () => {
       </Row>
 
       <Card title="供应商积分卡明细" size="small">
-        <Table dataSource={data} columns={columns} rowKey="id" size="small" pagination={false} />
+        <Table dataSource={data} columns={columns} rowKey="id" size="small" pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }} />
       </Card>
 
       <Modal title="设置评分权重" open={weightModalVisible} onOk={handleWeightSave} onCancel={() => setWeightModalVisible(false)} width={500}>

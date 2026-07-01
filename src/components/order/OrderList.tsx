@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Table, Card, Select, Tag, Space, Button } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { PurchaseOrder, OrderStatus } from '@/types/order';
 
 interface OrderListProps {
@@ -49,7 +49,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onAdd, onEdit, onDelete, 
           {onStatusChange && ['draft', 'submitted', 'confirmed'].includes(record.status) && (
             <Button size="small" type="link" danger onClick={() => onStatusChange(record, 'cancelled')}>取消</Button>
           )}
-          {onDelete && <Button size="small" danger onClick={() => onDelete(record)}>删除</Button>}
+          {onDelete && <Button size="small" danger icon={<DeleteOutlined />} onClick={() => onDelete(record)} />}
         </Space>
       ),
     },

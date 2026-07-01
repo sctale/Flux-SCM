@@ -10,6 +10,7 @@ interface SupplierListProps {
   suppliers: Supplier[];
   onAdd: () => void;
   onEdit: (supplier: Supplier) => void;
+  onDelete?: (supplier: Supplier) => void;
 }
 
 const statusMap: Record<SupplierStatus, { label: string; color: string }> = {
@@ -20,7 +21,7 @@ const statusMap: Record<SupplierStatus, { label: string; color: string }> = {
   blacklisted: { label: '黑名单', color: 'error' },
 };
 
-const SupplierList: React.FC<SupplierListProps> = ({ suppliers, onAdd, onEdit }) => {
+const SupplierList: React.FC<SupplierListProps> = ({ suppliers, onAdd, onEdit, onDelete }) => {
   const [filterQuadrant, setFilterQuadrant] = useState<KraljicQuadrant | undefined>();
   const [filterGrade, setFilterGrade] = useState<PerformanceGrade | undefined>();
   const [filterStatus, setFilterStatus] = useState<SupplierStatus | undefined>();
@@ -49,6 +50,15 @@ const SupplierList: React.FC<SupplierListProps> = ({ suppliers, onAdd, onEdit })
     { title: '交付', dataIndex: 'deliveryScore', key: 'deliveryScore' },
     { title: '服务', dataIndex: 'serviceScore', key: 'serviceScore' },
     { title: '状态', dataIndex: 'status', key: 'status', render: (s: SupplierStatus) => <Tag color={statusMap[s].color}>{statusMap[s].label}</Tag> },
+    {
+      title: '操作', key: 'action', width: 120,
+      render: (_: any, record: Supplier) => (
+        <Space>
+          <Button size="small" onClick={() => onEdit(record)}>编辑</Button>
+          {onDelete && <Button size="small" danger onClick={() => onDelete(record)}>删除</Button>}
+        </Space>
+      ),
+    },
   ];
 
   return (
@@ -71,7 +81,7 @@ const SupplierList: React.FC<SupplierListProps> = ({ suppliers, onAdd, onEdit })
           <Select placeholder="矩阵分类" allowClear style={{ width: 140 }} value={filterQuadrant} onChange={setFilterQuadrant}
             options={Object.entries(quadrantLabels).map(([k, v]) => ({ value: k, label: v }))} />
           <Select placeholder="绩效等级" allowClear style={{ width: 120 }} value={filterGrade} onChange={setFilterGrade}
-            options={['A', 'B', 'C', 'D'].map((g) => ({ value: g, label: `${g}级` }))} />
+            options={['A', 'B', 'C', 'D', 'F'].map((g) => ({ value: g, label: `${g}级` }))} />
           <Select placeholder="状态" allowClear style={{ width: 120 }} value={filterStatus} onChange={setFilterStatus}
             options={Object.entries(statusMap).map(([k, v]) => ({ value: k, label: v.label }))} />
           <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>新增供应商</Button>
